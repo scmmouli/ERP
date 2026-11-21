@@ -15,6 +15,7 @@ export interface Customer {
   address: string
   credit_limit: string
   outstanding?: string
+  overdue?: string
 }
 
 export interface InvLine {

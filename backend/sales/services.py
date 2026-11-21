@@ -45,7 +45,10 @@ def compute_line(qty, rate, discount, gst_rate, inter_state):
 def customer_outstanding(customer) -> Decimal:
     inv = SalesInvoice.objects.filter(customer=customer).aggregate(t=Sum("total"), p=Sum("paid"))
     ret = SalesReturn.objects.filter(invoice__customer=customer).aggregate(c=Sum("credit_amount"))
-    return (inv["t"] or ZERO) - (inv["p"] or ZERO) - (ret["c"] or ZERO)
+    from payments.models import Receipt  # imported here to avoid a circular import
+
+    rec = Receipt.objects.filter(customer=customer).aggregate(t=Sum("amount"))["t"] or ZERO
+    return (inv["t"] or ZERO) - (inv["p"] or ZERO) - (ret["c"] or ZERO) - rec
 
 
 @transaction.atomic

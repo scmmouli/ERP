@@ -32,15 +32,19 @@ class CustomerViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        from sales.models import SalesInvoice, SalesReturn  # imported here to avoid a circular import
+        from payments.models import Receipt  # imported here to avoid a circular import
+        from sales.models import SalesInvoice, SalesReturn
 
         billed = (SalesInvoice.objects.filter(customer=OuterRef("pk")).order_by().values("customer")
                   .annotate(s=Sum(F("total") - F("paid"), output_field=DEC)).values("s"))
         credits = (SalesReturn.objects.filter(invoice__customer=OuterRef("pk")).order_by()
                    .values("invoice__customer").annotate(s=Sum("credit_amount")).values("s"))
+        received = (Receipt.objects.filter(customer=OuterRef("pk")).order_by().values("customer")
+                    .annotate(s=Sum("amount")).values("s"))
         qs = Customer.objects.filter(is_active=True).annotate(
             outstanding=Coalesce(Subquery(billed, output_field=DEC), Value(0), output_field=DEC)
             - Coalesce(Subquery(credits, output_field=DEC), Value(0), output_field=DEC)
+            - Coalesce(Subquery(received, output_field=DEC), Value(0), output_field=DEC)
         )
         q = self.request.query_params.get("q", "").strip()
         return qs.filter(Q(name__icontains=q) | Q(phone__icontains=q)) if q else qs

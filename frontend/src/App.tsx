@@ -8,6 +8,7 @@ import Items from './pages/Items'
 import Placeholder from './pages/Placeholder'
 import Purchase from './pages/Purchase'
 import Billing from './pages/Billing'
+import Customers from './pages/Customers'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -31,7 +32,7 @@ export default function App() {
         <Route path="billing" element={<Billing />} />
         <Route path="items" element={<Items />} />
         <Route path="purchase" element={<Purchase />} />
-        <Route path="customers" element={<Placeholder title="Customers" />} />
+        <Route path="customers" element={<Customers />} />
         <Route path="sales-report" element={<Placeholder title="Sales Report" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

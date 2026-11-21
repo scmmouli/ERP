@@ -6,8 +6,16 @@ import Modal from './Modal'
 
 const input = 'w-full rounded-lg border border-slate-400 px-3 py-2'
 
-export default function CustomerModal({ onClose, onSaved }: { onClose: () => void; onSaved: (c: Customer) => void }) {
-  const [f, setF] = useState({ name: '', phone: '', kind: 'GARAGE', gstin: '', state_code: '33', address: '', credit_limit: '0' })
+export default function CustomerModal({ customer, onClose, onSaved }: { customer?: Customer | null; onClose: () => void; onSaved: (c: Customer) => void }) {
+  const [f, setF] = useState({
+    name: customer?.name ?? '',
+    phone: customer?.phone ?? '',
+    kind: customer?.kind ?? 'GARAGE',
+    gstin: customer?.gstin ?? '',
+    state_code: customer?.state_code ?? '33',
+    address: customer?.address ?? '',
+    credit_limit: String(Number(customer?.credit_limit ?? 0)),
+  })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
@@ -16,8 +24,13 @@ export default function CustomerModal({ onClose, onSaved }: { onClose: () => voi
     e.preventDefault()
     setBusy(true)
     setError('')
+    const body = JSON.stringify(f)
     try {
-      onSaved(await api<Customer>('/parties/customers/', { method: 'POST', body: JSON.stringify(f) }))
+      onSaved(
+        customer
+          ? await api<Customer>(`/parties/customers/${customer.id}/`, { method: 'PATCH', body })
+          : await api<Customer>('/parties/customers/', { method: 'POST', body }),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the customer.')
       setBusy(false)
@@ -25,7 +38,7 @@ export default function CustomerModal({ onClose, onSaved }: { onClose: () => voi
   }
 
   return (
-    <Modal title="New customer" onClose={onClose}>
+    <Modal title={customer ? 'Edit customer' : 'New customer'} onClose={onClose}>
       <form onSubmit={submit} className="grid grid-cols-2 gap-4">
         <div><label htmlFor="cname" className="mb-1 block text-sm font-semibold">Name</label><input id="cname" required value={f.name} onChange={set('name')} className={input} /></div>
         <div><label htmlFor="cphone" className="mb-1 block text-sm font-semibold">Phone</label><input id="cphone" value={f.phone} onChange={set('phone')} className={input} /></div>
