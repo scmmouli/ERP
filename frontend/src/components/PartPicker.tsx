@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { RefObject } from 'react'
 import { api } from '../api'
 import type { Item, Page } from '../catalog'
 import StockBadge from './StockBadge'
 
-export default function PartPicker({ onPick }: { onPick: (item: Item) => void }) {
+export default function PartPicker({ onPick, inputRef }: { onPick: (item: Item) => void; inputRef?: RefObject<HTMLInputElement | null> }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<Item[]>([])
 
@@ -26,6 +27,7 @@ export default function PartPicker({ onPick }: { onPick: (item: Item) => void })
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         aria-label="Search part to add"
         value={q}
         onChange={(e) => setQ(e.target.value)}

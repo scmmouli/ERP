@@ -18,7 +18,7 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-52 flex-col gap-1 bg-[#0f1f36] px-3 py-5 text-[#c9d6ea]">
+      <aside className="flex print:hidden w-52 flex-col gap-1 bg-[#0f1f36] px-3 py-5 text-[#c9d6ea]">
         <div className="px-2 pb-5 text-base font-bold text-white">Parts ERP</div>
         {NAV.filter((n) => n.roles.includes(user.role)).map((n) => (
           <NavLink
@@ -36,7 +36,7 @@ export default function Layout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-end gap-3 px-7 py-4">
+        <header className="flex print:hidden items-center justify-end gap-3 px-7 py-4">
           <span className="text-sm text-slate-600">{user.role.toLowerCase()}</span>
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1f5fbf] text-sm font-bold text-white">
             {initials}
@@ -48,7 +48,7 @@ export default function Layout() {
             Sign out
           </button>
         </header>
-        <main className="flex-1 px-7 pb-8">
+        <main className="flex-1 px-7 pb-8 print:px-0 print:pb-0">
           <Outlet />
         </main>
       </div>

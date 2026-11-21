@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "parties",
     "inventory",
     "purchasing",
+    "sales",
 ]
 
 MIDDLEWARE = [
@@ -94,3 +95,14 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
+
+# Shop details printed on invoices (set these in backend/.env for the real shop)
+SHOP_NAME = os.environ.get("SHOP_NAME", "Parts Shop")
+SHOP_GSTIN = os.environ.get("SHOP_GSTIN", "")
+SHOP_ADDRESS = os.environ.get("SHOP_ADDRESS", "")
+SHOP_PHONE = os.environ.get("SHOP_PHONE", "")
+SHOP_STATE_CODE = os.environ.get("SHOP_STATE_CODE", "33")  # 33 = Tamil Nadu
+
+# Billing rules
+PRICES_INCLUDE_GST = os.environ.get("PRICES_INCLUDE_GST", "0") == "1"  # 1 if sale prices already include GST
+COUNTER_MAX_DISCOUNT_PERCENT = int(os.environ.get("COUNTER_MAX_DISCOUNT_PERCENT", "10"))
