@@ -4,6 +4,7 @@ import { useAuth } from './auth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Items from './pages/Items'
 import Placeholder from './pages/Placeholder'
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -26,7 +27,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="billing" element={<Placeholder title="Counter Billing" />} />
-        <Route path="items" element={<Placeholder title="Item Search" />} />
+        <Route path="items" element={<Items />} />
         <Route path="purchase" element={<Placeholder title="Purchase Entry (GRN)" />} />
         <Route path="customers" element={<Placeholder title="Customers" />} />
         <Route path="sales-report" element={<Placeholder title="Sales Report" />} />

@@ -25,22 +25,39 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function errorMessage(res: Response): Promise<string> {
+  const fallback = 'Something went wrong. Try again.'
+  try {
+    const body = await res.json()
+    if (typeof body.detail === 'string') return body.detail
+    const first = Object.entries(body)[0]
+    if (first) {
+      const [field, msg] = first
+      const text = Array.isArray(msg) ? String(msg[0]) : String(msg)
+      return `${field.replace(/_/g, ' ')}: ${text}`
+    }
+  } catch {
+    /* keep fallback */
+  }
+  return fallback
+}
+
+function authHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers)
-  headers.set('Content-Type', 'application/json')
+  if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
+  return headers
+}
 
-  const res = await fetch(`/api${path}`, { ...init, headers })
-  if (!res.ok) {
-    let message = 'Something went wrong. Try again.'
-    try {
-      const body = await res.json()
-      message = body.detail ?? message
-    } catch {
-      /* keep default message */
-    }
-    throw new ApiError(res.status, message)
-  }
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`/api${path}`, { ...init, headers: authHeaders(init) })
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res))
   return res.json() as Promise<T>
+}
+
+export async function apiBlob(path: string): Promise<Blob> {
+  const res = await fetch(`/api${path}`, { headers: authHeaders({}) })
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res))
+  return res.blob()
 }
