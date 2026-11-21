@@ -53,6 +53,7 @@ function authHeaders(init: RequestInit): Headers {
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api${path}`, { ...init, headers: authHeaders(init) })
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res))
+  if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
 

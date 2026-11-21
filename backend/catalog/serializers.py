@@ -36,12 +36,13 @@ class ItemSerializer(serializers.ModelSerializer):
     brand = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     cross_refs = CrossRefSerializer(many=True, read_only=True)
     fitments = FitmentSerializer(many=True, read_only=True)
+    stock = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Item
         fields = (
             "id", "part_number", "name", "brand", "is_oem", "hsn_code", "gst_rate", "uom",
-            "mrp", "sale_price", "rack", "reorder_level", "barcode", "cross_refs", "fitments",
+            "mrp", "sale_price", "rack", "reorder_level", "barcode", "cross_refs", "fitments", "stock",
         )
 
     def to_representation(self, instance):

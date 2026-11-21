@@ -7,11 +7,15 @@ from django.db import transaction
 from openpyxl import Workbook, load_workbook
 
 from .models import Fitment, Item, ItemCrossRef, VehicleModel
+from inventory.models import StockLedger
+from inventory.services import post_stock
+
 from .serializers import ALLOWED_GST, get_or_create_brand
 
 HEADERS = [
     "Part Number", "Name", "Brand", "Type", "HSN Code", "GST Rate", "MRP", "Sale Price",
     "Unit", "Rack", "Reorder Level", "Barcode", "Alternate Part Numbers", "Fits Vehicles",
+    "Opening Stock", "Cost Price",
 ]
 REQUIRED = ["part number", "name"]
 
@@ -21,7 +25,7 @@ def build_template() -> bytes:
     ws = wb.active
     ws.title = "Items"
     ws.append(HEADERS)
-    for col in "ABCDEFGHIJKLMN":
+    for col in "ABCDEFGHIJKLMNOP":
         ws.column_dimensions[col].width = 22
     info = wb.create_sheet("Instructions")
     for line in [
@@ -32,6 +36,8 @@ def build_template() -> bytes:
         "Fits Vehicles: Make / Model / Variant, separate vehicles with semicolons. Variant is optional.",
         "Example: Maruti / Swift Dzire / Diesel; Hyundai / i20",
         "If a Part Number already exists, that item is updated instead of duplicated.",
+        "Opening Stock is added only for parts that have no stock history yet, so re-importing never doubles stock.",
+        "Cost Price is your purchase cost per unit, used for stock value and profit.",
     ]:
         info.append([line])
     info.column_dimensions["A"].width = 100
@@ -65,7 +71,7 @@ def _split(v, seps):
     return [p.strip() for p in re.split(seps, _text(v)) if p.strip()]
 
 
-def _import_row(r):
+def _import_row(r, user):
     part = _text(r.get("part number"))
     name = _text(r.get("name"))
     if not part or not name:
@@ -74,6 +80,8 @@ def _import_row(r):
     if gst not in ALLOWED_GST:
         raise ValueError("GST Rate must be 0, 5, 12, 18 or 28.")
     reorder = _decimal(r.get("reorder level"), "Reorder Level")
+    opening = _decimal(r.get("opening stock"), "Opening Stock")
+    cost = _decimal(r.get("cost price"), "Cost Price")
     defaults = {
         "name": name,
         "brand": get_or_create_brand(_text(r.get("brand"))),
@@ -108,10 +116,13 @@ def _import_row(r):
             make=parts[0], model=parts[1], variant=parts[2] if len(parts) > 2 else ""
         )
         Fitment.objects.get_or_create(item=item, vehicle=vehicle)
+    if opening > 0 and not StockLedger.objects.filter(item=item).exists():
+        post_stock(item=item, qty=opening, ref_type="OPENING", user=user, unit_cost=cost or None,
+                   note="Opening stock (Excel import)")
     return created
 
 
-def import_workbook(file) -> dict:
+def import_workbook(file, user) -> dict:
     wb = load_workbook(file, read_only=True, data_only=True)
     ws = wb["Items"] if "Items" in wb.sheetnames else wb.worksheets[0]
     rows = ws.iter_rows(values_only=True)
@@ -130,7 +141,7 @@ def import_workbook(file) -> dict:
             continue
         try:
             with transaction.atomic():
-                created = _import_row(r)
+                created = _import_row(r, user)
             result["created" if created else "updated"] += 1
         except Exception as e:  # report the row and keep going
             result["failed"] += 1

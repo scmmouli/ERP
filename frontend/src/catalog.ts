@@ -25,6 +25,7 @@ export interface Item {
   rack: string
   reorder_level: number
   barcode: string
+  stock?: string
   cross_refs: CrossRef[]
   fitments: { id: number; vehicle: Vehicle }[]
 }

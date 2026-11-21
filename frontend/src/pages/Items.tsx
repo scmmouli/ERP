@@ -5,6 +5,8 @@ import { rupees, vehicleLabel } from '../catalog'
 import type { Item, Page } from '../catalog'
 import ImportModal from '../components/ImportModal'
 import ItemForm from '../components/ItemForm'
+import AdjustModal from '../components/AdjustModal'
+import StockBadge from '../components/StockBadge'
 
 const PAGE_SIZE = 25
 const pill = 'inline-block rounded-full border border-slate-300 bg-white px-3 py-1 text-sm'
@@ -17,6 +19,8 @@ export default function Items() {
   const [debounced, setDebounced] = useState('')
   const [brand, setBrand] = useState('')
   const [make, setMake] = useState('')
+  const [lowOnly, setLowOnly] = useState(false)
+  const [adjustItem, setAdjustItem] = useState<Item | null>(null)
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Page<Item> | null>(null)
   const [filters, setFilters] = useState<{ brands: string[]; makes: string[] }>({ brands: [], makes: [] })
@@ -39,13 +43,14 @@ export default function Items() {
     if (debounced) params.set('q', debounced)
     if (brand) params.set('brand', brand)
     if (make) params.set('make', make)
+    if (lowOnly) params.set('low', '1')
     api<Page<Item>>(`/catalog/items/?${params}`)
       .then((d) => {
         setData(d)
         setError('')
       })
       .catch((e: Error) => setError(e.message))
-  }, [debounced, brand, make, page, reload])
+  }, [debounced, brand, make, lowOnly, page, reload])
 
   useEffect(() => {
     api<{ brands: string[]; makes: string[] }>('/catalog/filters/').then(setFilters).catch(() => {})
@@ -89,6 +94,10 @@ export default function Items() {
           <option value="">All vehicle makes</option>
           {filters.makes.map((m) => <option key={m}>{m}</option>)}
         </select>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-400 bg-white px-3 py-3">
+          <input type="checkbox" checked={lowOnly} onChange={(e) => { setLowOnly(e.target.checked); setPage(1) }} />
+          Low stock only
+        </label>
       </div>
 
       {error && <p role="alert" className="font-semibold text-red-800">{error}</p>}
@@ -105,7 +114,7 @@ export default function Items() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600">
-                    <th className="p-2">Part</th><th className="p-2">Brand</th><th className="p-2">Rack</th>
+                    <th className="p-2">Part</th><th className="p-2">Brand</th><th className="p-2">Rack</th><th className="p-2 text-right">Stock</th>
                     <th className="p-2 text-right">MRP</th><th className="p-2 text-right">Price</th>
                   </tr>
                 </thead>
@@ -120,6 +129,7 @@ export default function Items() {
                       </td>
                       <td className="p-2">{i.brand || '—'}</td>
                       <td className="p-2">{i.rack || '—'}</td>
+                      <td className="p-2 text-right"><StockBadge item={i} /></td>
                       <td className="p-2 text-right">{rupees(i.mrp)}</td>
                       <td className="p-2 text-right font-semibold">{rupees(i.sale_price)}</td>
                     </tr>
@@ -144,6 +154,7 @@ export default function Items() {
               <span className="rounded-full bg-slate-200 px-3 py-0.5 text-sm font-semibold text-slate-800">{selected.is_oem ? 'OEM' : 'Aftermarket'}</span>
             </div>
             <dl className="mb-3 text-sm">
+              <div className="flex justify-between py-1"><dt className="text-slate-600">In stock</dt><dd><StockBadge item={selected} /></dd></div>
               <div className="flex justify-between py-1"><dt className="text-slate-600">Rack</dt><dd className="font-semibold">{selected.rack || '—'}</dd></div>
               <div className="flex justify-between py-1"><dt className="text-slate-600">Reorder level</dt><dd className="font-semibold">{selected.reorder_level}</dd></div>
               <div className="flex justify-between py-1"><dt className="text-slate-600">Barcode</dt><dd className="font-semibold">{selected.barcode || '—'}</dd></div>
@@ -156,7 +167,12 @@ export default function Items() {
             <div className="mb-4 flex flex-wrap gap-2">
               {selected.fitments.length ? selected.fitments.map((f) => <span key={f.id} className={pill}>{vehicleLabel(f.vehicle)}</span>) : <span className="text-sm text-slate-600">None recorded</span>}
             </div>
-            {canEdit && <button onClick={() => setFormItem(selected)} className="rounded-lg border border-[#1f5fbf] px-4 py-2 font-semibold text-[#1b4f9c]">Edit</button>}
+            {canEdit && (
+              <div className="flex gap-2">
+                <button onClick={() => setFormItem(selected)} className="rounded-lg border border-[#1f5fbf] px-4 py-2 font-semibold text-[#1b4f9c]">Edit</button>
+                <button onClick={() => setAdjustItem(selected)} className="rounded-lg border border-[#1f5fbf] px-4 py-2 font-semibold text-[#1b4f9c]">Adjust stock</button>
+              </div>
+            )}
           </aside>
         )}
       </div>
@@ -173,6 +189,7 @@ export default function Items() {
           }}
         />
       )}
+      {adjustItem && <AdjustModal item={adjustItem} onClose={() => setAdjustItem(null)} onDone={() => { setAdjustItem(null); setReload((n) => n + 1) }} />}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} onDone={() => setReload((n) => n + 1)} />}
     </div>
   )

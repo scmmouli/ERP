@@ -1,6 +1,10 @@
 from django.core.management.base import BaseCommand
 
+from accounts.models import User
 from catalog.models import Fitment, Item, ItemCrossRef, VehicleModel
+from inventory.models import StockLedger
+from inventory.services import post_stock
+from parties.models import Supplier
 from catalog.serializers import get_or_create_brand
 
 VEHICLES = [("Maruti", "Swift Dzire", "Diesel"), ("Hyundai", "i20", ""), ("Honda", "City", "Petrol"), ("Maruti", "Alto", "")]
@@ -31,4 +35,11 @@ class Command(BaseCommand):
                 ItemCrossRef.objects.get_or_create(item=item, alt_part_number=a, defaults={"alt_key": ""})
             for i in fits:
                 Fitment.objects.get_or_create(item=item, vehicle=vehicles[i])
+        Supplier.objects.get_or_create(name="Sample Auto Distributors", defaults={"phone": "0000000000"})
+        owner = User.objects.filter(role="OWNER").first()
+        if owner:
+            for (part, *_), qty in zip(ITEMS, [2, 4, 0, 18, 25, 3, 6, 9]):
+                item = Item.objects.get(part_number=part)
+                if qty and not StockLedger.objects.filter(item=item).exists():
+                    post_stock(item=item, qty=qty, ref_type="OPENING", user=owner, unit_cost=item.sale_price * 4 / 5, note="Sample opening stock")
         self.stdout.write(f"Sample catalog ready: {Item.objects.count()} items.")

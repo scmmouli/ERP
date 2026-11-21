@@ -1,4 +1,5 @@
-from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Value, When
+from django.db.models import Case, DecimalField, Exists, F, IntegerField, OuterRef, Q, Subquery, Sum, Value, When
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -7,12 +8,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import role_required
+from inventory.models import StockLedger
 
 from .importer import build_template, import_workbook
 from .models import Brand, Fitment, Item, ItemCrossRef, VehicleModel, normalize_part_number
 from .serializers import ItemSerializer
 
 CAN_EDIT = ("OWNER", "STOREKEEPER")
+
+DEC = DecimalField(max_digits=12, decimal_places=2)
+STOCK = Coalesce(
+    Subquery(StockLedger.objects.filter(item=OuterRef("pk")).values("item").annotate(s=Sum("qty")).values("s"), output_field=DEC),
+    Value(0), output_field=DEC,
+)
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -29,10 +37,12 @@ class ItemViewSet(viewsets.ModelViewSet):
         instance.save(update_fields=["is_active"])
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().annotate(stock=STOCK)
         p = self.request.query_params
         if p.get("include_inactive") != "1":
             qs = qs.filter(is_active=True)
+        if p.get("low") == "1":
+            qs = qs.filter(reorder_level__gt=0, stock__lte=F("reorder_level"))
         if p.get("brand"):
             qs = qs.filter(brand__name__iexact=p["brand"])
         if p.get("make"):
@@ -81,7 +91,7 @@ class ImportView(APIView):
         if not f:
             return Response({"detail": "Choose an Excel file (.xlsx) to import."}, status=400)
         try:
-            return Response(import_workbook(f))
+            return Response(import_workbook(f, request.user))
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
         except Exception:

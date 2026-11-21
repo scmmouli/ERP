@@ -21,6 +21,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "accounts",
     "catalog",
+    "parties",
+    "inventory",
+    "purchasing",
 ]
 
 MIDDLEWARE = [
