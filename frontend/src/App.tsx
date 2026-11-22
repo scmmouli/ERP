@@ -5,7 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Items from './pages/Items'
-import Placeholder from './pages/Placeholder'
+import SalesReport from './pages/SalesReport'
 import Purchase from './pages/Purchase'
 import Billing from './pages/Billing'
 import Customers from './pages/Customers'
@@ -33,7 +33,7 @@ export default function App() {
         <Route path="items" element={<Items />} />
         <Route path="purchase" element={<Purchase />} />
         <Route path="customers" element={<Customers />} />
-        <Route path="sales-report" element={<Placeholder title="Sales Report" />} />
+        <Route path="sales-report" element={<SalesReport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
