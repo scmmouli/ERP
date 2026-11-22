@@ -3,9 +3,13 @@ __pycache__/
 *.pyc
 .venv/
 backend/.env
+backend/staticfiles/
 # Node
 node_modules/
 dist/
+# Secrets and server files: never commit these
+.env.prod
+backups/
 # Editors / OS
 .vscode/
 .idea/
